@@ -4,6 +4,8 @@ import com.evecodeideas.com.springboot.app.controllers.util.pagenator.PageRender
 import com.evecodeideas.com.springboot.app.models.dao.IClienteDao;
 import com.evecodeideas.com.springboot.app.models.entity.Cliente;
 import com.evecodeideas.com.springboot.app.models.service.IClienteService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -22,6 +24,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Map;
+import java.util.UUID;
 
 
 @Controller
@@ -32,6 +35,7 @@ public class ClienteController {
 //    private IClienteDao clienteDao;
     private IClienteService clienteService;
     private RedirectAttributes flash;
+    private final Logger log = LoggerFactory.getLogger(getClass());
 
     @GetMapping(value = "/ver/{id}")
     public String ver (@PathVariable(value = "id") Long id, Map<String, Object> model, RedirectAttributes flash){
@@ -79,15 +83,23 @@ public class ClienteController {
             return "form";
         }
         if(!photo.isEmpty()){
-//            Path resourcesDirectory = Paths.get("src//main//resources//static/uploads");
-            String rootPath = "C://Temp//uploads";
-            try {
-                byte[] bytes = photo.getBytes();
-                Path completPath = Paths.get(rootPath + "//" +  photo.getOriginalFilename());
-                Files.write(completPath, bytes);
-                flash.addFlashAttribute("info", "You had uploaded successfully '" + photo.getOriginalFilename() + "'" );
+//            Path resourcesDirectory = Paths.get("src//main//resources//static/uploads"); //Para guardar en la carpeta del proyecto
+//            String rootPath = "C://Temp//uploads"; //Para guardar en C
+            String uniqueFileName = UUID.randomUUID().toString() + "_" + photo.getOriginalFilename();
+            Path rootPath = Paths.get("uploads").resolve(uniqueFileName);
+            Path rootAbsolutePath = rootPath.toAbsolutePath();
 
-                cliente.setPhoto(photo.getOriginalFilename());
+            log.info("rootPath:" + rootPath);
+            log.info("rootAbsolutePath:" + rootAbsolutePath);
+
+            try {
+//                byte[] bytes = photo.getBytes();
+//                Path completPath = Paths.get(rootPath + "//" +  photo.getOriginalFilename());
+//                Files.write(completPath, bytes);
+                // we can replace the three above lines by:
+                Files.copy(photo.getInputStream(), rootAbsolutePath);
+                flash.addFlashAttribute("info", "You had uploaded successfully '" + uniqueFileName + "'" );
+                cliente.setPhoto(uniqueFileName);
             } catch (IOException e) {
                 e.printStackTrace();
             }
