@@ -4,12 +4,17 @@ import com.evecodeideas.com.springboot.app.controllers.util.pagenator.PageRender
 import com.evecodeideas.com.springboot.app.models.dao.IClienteDao;
 import com.evecodeideas.com.springboot.app.models.entity.Cliente;
 import com.evecodeideas.com.springboot.app.models.service.IClienteService;
+import lombok.Getter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.UrlResource;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
@@ -20,6 +25,7 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import javax.validation.Valid;
 import java.io.IOException;
+import java.net.MalformedURLException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -36,6 +42,28 @@ public class ClienteController {
     private IClienteService clienteService;
     private RedirectAttributes flash;
     private final Logger log = LoggerFactory.getLogger(getClass());
+
+    @GetMapping(value = "/uploads/{fileName:.+}")//Expresion regular para que no se borre el archivo, pasara el nombre del archivo con la extension
+    public ResponseEntity<Resource> VerFoto(@PathVariable String fileName){
+
+        Path pathPhoto = Paths.get("uploads").resolve(fileName).toAbsolutePath();
+        log.info("pathPhoto: " + pathPhoto);
+        Resource resource = null;
+
+        try {
+            resource = new UrlResource(pathPhoto.toUri());
+            if (!resource.exists() && ! resource.isReadable()){
+                throw new RuntimeException("Error:  No se puede cargar la imagen " + pathPhoto.toString());
+            }
+        } catch (MalformedURLException e) {
+            e.printStackTrace();
+        }
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachement; fileName=\"" + resource.getFilename() +"\"")
+                .body(resource);
+
+    }
 
     @GetMapping(value = "/ver/{id}")
     public String ver (@PathVariable(value = "id") Long id, Map<String, Object> model, RedirectAttributes flash){
